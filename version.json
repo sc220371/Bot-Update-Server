@@ -1,9 +1,10 @@
 {
-  "latest_version": 11.31,
-  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v11.31/_11.31.exe",
+  "latest_version": 11.4,
+  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v11.4/Aether.Helper.exe",
   "update_notes": [
-    "【版本 11.31 更新紀錄】",
+    "【版本 11.4 更新紀錄】",
     "1. 修復了戰鬥輔助-齒輪視窗顯示不全的問題。",
+    "2. 修復了繞圈模式、定點模式無法使用的問題。",
     "【版本 11.3 更新紀錄】",
     "1. 修復了繞圈施放會跑到第一個點的Bug。",
     "2. 手動施放、定點施放增加微幅鼠標震動，模擬手操情境。",
