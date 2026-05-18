@@ -1,5 +1,5 @@
 {
-  "latest_version": 11.3,
+  "latest_version": 11.2,
   "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v11.1/_11.1.exe",
   "update_notes":"【版本 11.3 更新紀錄】\n1. 修復了繞圈施放會跑到第一個點的Bug。\n2. 手動施放加入了純相對座標偏移。\n3. 優化定點施放精準度。\n4. 加入更新公告彈窗功能！"
 }
