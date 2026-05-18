@@ -1,7 +1,11 @@
 {
-  "latest_version": 11.4,
-  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v11.4/Aether.Helper.exe",
+  "latest_version": 11.5,
+  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v11.5/Aether.Helper.exe",
   "update_notes": [
+    "【0518 版本 11.5 更新紀錄】",
+    "1. 修正同步模式輸入字元會重複的問題。",
+    "2. 修正同步模式廣播會卡住的bug。",
+    "----------------------------------------",
     "【0518 版本 11.4 更新紀錄】",
     "1. 修復了戰鬥輔助-齒輪視窗顯示不全的問題。",
     "2. 修復了繞圈模式、定點模式無法使用的問題。",
