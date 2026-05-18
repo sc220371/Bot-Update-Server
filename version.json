@@ -1,7 +1,9 @@
 {
-  "latest_version": 11.5,
-  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v11.5/Aether.Helper.exe",
+  "latest_version": 11.6,
+  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v11.6/Aether.Helper.exe",
   "update_notes": [
+    "【0518 版本 11.6 更新紀錄】",
+    "1. 修正北歐論壇回文時會要求輸入雙驗證視窗的問題。",
     "【0518 版本 11.5 更新紀錄】",
     "1. 修正同步模式輸入字元會重複的問題。",
     "2. 修正同步模式廣播會卡住的bug。",
