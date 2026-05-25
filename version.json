@@ -1,12 +1,11 @@
 {
-  "latest_version": 11.9,
-  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v11.9/Aether.Helper.exe",
+  "latest_version": 12,
+  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v12.0/Aether.Helper.exe",
   "update_notes": [
-    "【v11.9 更新內容】",
-    "- 新增啟動畫面",
-    "- 更新流程改善",
-    "- 介面調整",
-    "- 多窗同步新增一鍵加入所有視窗、雙擊跳轉視窗、自訂同步熱鍵",
-    "- 修正外網連線 ngrok 下載失敗的錯誤"
+    "【v12.0 更新內容】",
+    "- 增強防外掛辨識功能，新增第二組辨識圖，提升偵測成功率",
+    "- 修復外掛驗證完成後未正確恢復自動戰鬥的問題",
+    "- 新增驗證後 60 秒冷卻機制，防止重複觸發驗證程序",
+    "- 優化技能按鍵有時需要按兩下才能開啟/關閉的問題"
   ]
 }
