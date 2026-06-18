@@ -1,8 +1,9 @@
 {
-  "latest_version": 12.2,
-  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v12.2/Aether.Helper.exe",
+  "latest_version": 12.3,
+  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/do-wnload/v12.3/Aether.Helper.exe",
   "update_notes": [
-    "【v12.2 更新內容】",
-    "- 更新自動推廣以符合 chrome v.148 版本。"
+    "【v12.3 更新內容】",
+    "- 新增 休閒輔助模式 (輪盤輔助)",
+    "- 調整防外掛驗證冷卻由1分鐘 -> 提升至3分鐘避免重複執行。"
   ]
 }
