@@ -1,12 +1,12 @@
 {
-  "latest_version": 12.4,
-  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v12.4/Aether.Helper.exe",
+  "latest_version": 12.5,
+  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v12.5/Aether.Helper.exe",
   "update_notes": [
-    "【v12.4 更新內容】",
-    "- 輪盤輔助模式：新增 AFK 設定",
-    "- 快速登入模式：登入完畢後可選取自動領取每日福利、登入帳號數量提升至 8 個、登入角色數量提升至 5 個",
-    "- 快速登入模式：調整擷取、選取角色方式",
-    "- 改善 戰鬥輔助、休閒輔助模式：最上層非 RO 視窗時不會觸發熱鍵",
-    "- 改善 道館模式：調整點擊 NPC 延遲，改善點不到 NPC 的問題"
+    "【v12.5 更新內容】",
+    "- 修正輪盤助手無法輪循的問題",
+    "- 修正懸浮球通知訊息不會跟著懸浮球移動而移動，會卡在原地的問題",
+    "- 修正當重新設定繞圈模式裡的參數，所以熱鍵會失效的問題",
+    "- 新增同步模式的懸浮球通知訊息",
+    "- 改善「回城暫停輔助」的判定方式"
   ]
 }
