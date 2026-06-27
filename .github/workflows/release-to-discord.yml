@@ -67,7 +67,11 @@ jobs:
 
           req = urllib.request.Request(
               webhook, data=data,
-              headers={"Content-Type": "application/json"},
+              headers={
+                  "Content-Type": "application/json",
+                  # 🔑 必須帶 User-Agent，否則會被 Discord 前面的 Cloudflare 以 error 1010 擋下
+                  "User-Agent": "StarRO-Release-Bot/1.0 (+https://github.com/sc220371/Bot-Update-Server)",
+              },
               method="POST",
           )
           try:
