@@ -54,12 +54,30 @@ jobs:
           }
 
           data = json.dumps(payload).encode("utf-8")
+
+          # 🔍 診斷：確認 webhook 有沒有正確抓到 (只顯示開頭，不洩漏完整網址)
+          if not webhook:
+              print("❌ 錯誤：DISCORD_WEBHOOK 是空的！代表 GitHub Secret 沒設好或名稱不符。")
+              print("   請確認 repo Settings → Secrets → 有一個名為 DISCORD_RELEASE_WEBHOOK 的 secret。")
+              raise SystemExit(1)
+          print(f"🔍 webhook 長度: {len(webhook)} 字元")
+          print(f"🔍 webhook 開頭: {webhook[:40]}...")
+          print(f"🔍 格式檢查 (應以 https://discord.com/api/webhooks/ 開頭): "
+                f"{'✅ 正確' if webhook.startswith('https://discord.com/api/webhooks/') else '❌ 格式不對'}")
+
           req = urllib.request.Request(
               webhook, data=data,
               headers={"Content-Type": "application/json"},
               method="POST",
           )
-          with urllib.request.urlopen(req) as resp:
-              print(f"Discord 回應狀態碼: {resp.status}")
-              print("✅ 版本公告已送出！")
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print(f"Discord 回應狀態碼: {resp.status}")
+                  print("✅ 版本公告已送出！")
+          except urllib.error.HTTPError as e:
+              # 印出 Discord 回傳的具體錯誤內容，方便判斷原因
+              err_body = e.read().decode("utf-8", errors="replace")
+              print(f"❌ Discord 拒絕，狀態碼 {e.code}")
+              print(f"❌ Discord 回應內容: {err_body}")
+              raise
           PYEOF
