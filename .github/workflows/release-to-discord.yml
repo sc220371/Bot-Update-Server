@@ -47,10 +47,10 @@ jobs:
               "footer": {"text": f"發布者 {author} ・ 繁星仙境輔助助手"},
           }
           payload = {
-              "content": "@everyone 輔助助手有新版本囉！記得更新 ⬇️",
+              "content": "📢 輔助助手有新版本囉！記得更新 ⬇️",
               "embeds": [embed],
-              # 限制 @everyone 只能 ping everyone，避免誤 ping 其他人
-              "allowed_mentions": {"parse": ["everyone"]},
+              # 不提及任何人，避免 @everyone 權限不足導致 403
+              "allowed_mentions": {"parse": []},
           }
 
           data = json.dumps(payload).encode("utf-8")
