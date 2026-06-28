@@ -23,6 +23,13 @@ jobs:
           import os, json, urllib.request
 
           webhook = os.environ["DISCORD_WEBHOOK"]
+
+          # 📌 論壇頻道：把公告都發到這個固定貼文 (thread) 裡
+          THREAD_ID = "1507383354843070485"
+          if THREAD_ID:
+              sep = "&" if "?" in webhook else "?"
+              webhook = f"{webhook}{sep}thread_id={THREAD_ID}"
+
           tag       = os.environ.get("TAG") or "(未知版本)"
           name      = os.environ.get("NAME") or tag
           body      = os.environ.get("BODY") or ""
