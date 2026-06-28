@@ -31,31 +31,21 @@ jobs:
               webhook = f"{webhook}{sep}thread_id={THREAD_ID}"
 
           tag       = os.environ.get("TAG") or "(未知版本)"
-          name      = os.environ.get("NAME") or tag
           body      = os.environ.get("BODY") or ""
-          url       = os.environ.get("URL") or ""
-          author    = os.environ.get("AUTHOR") or "開發者"
-          published = (os.environ.get("PUBLISHED") or "")[:10]  # 只取日期 YYYY-MM-DD
 
-          # 更新說明過長就截斷 (Discord embed description 上限 4096 字)
-          notes = body.strip() or "(這次沒有填寫更新說明，詳情請點上方標題連結查看)"
-          if len(notes) > 3800:
-              notes = notes[:3800] + "\n\n…(更新說明過長，已截斷，完整內容請點上方連結)"
+          # 更新項目內容 (直接用你在 GitHub release 說明欄寫的內容)
+          notes = body.strip() or "* (這次沒有填寫更新項目)"
 
-          embed = {
-              "title": f"🎉 新版本發布：{name}",
-              "url": url,
-              "description": notes,
-              "color": 3066993,  # 綠色
-              "fields": [
-                  {"name": "📌 版本", "value": tag, "inline": True},
-                  {"name": "📅 發布日期", "value": published, "inline": True},
-              ],
-              "footer": {"text": f"發布者 {author} ・ 繁星仙境輔助助手"},
-          }
+          # 標題：## <自訂表情> 乙太助手 v版本號 更新
+          #       底下直接接更新項目
+          message = f"## <a:1485675590529843310:1491388875669504132> 乙太助手 {tag} 更新\n{notes}"
+
+          # Discord 單則訊息上限 2000 字，超過就截斷
+          if len(message) > 1950:
+              message = message[:1950] + "\n…(內容過長已截斷)"
+
           payload = {
-              "content": "📢 輔助助手有新版本囉！記得更新 ⬇️",
-              "embeds": [embed],
+              "content": message,
               # 不提及任何人，避免 @everyone 權限不足導致 403
               "allowed_mentions": {"parse": []},
           }
