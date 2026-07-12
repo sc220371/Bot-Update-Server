@@ -1,0 +1,98 @@
+name: 發布後自動更新 version.json
+# 觸發時機：每當有 release 被「發布」時自動執行
+on:
+  release:
+    types: [published]
+
+# 🔑 需要寫入權限才能把 version.json commit 回 repo
+permissions:
+  contents: write
+
+jobs:
+  update-version-json:
+    runs-on: ubuntu-latest
+    steps:
+      # 💡 release 事件預設會 checkout 到 tag 的 commit，
+      #    必須明確指定主分支，之後才能 push
+      - name: 取得主分支
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: 產生 version.json
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          BODY: ${{ github.event.release.body }}
+          ASSETS_JSON: ${{ toJSON(github.event.release.assets) }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 << 'PYEOF'
+          import os, json
+
+          tag = (os.environ.get("TAG") or "").strip()          # 例如 v12.8
+          body = os.environ.get("BODY") or ""
+          repo = os.environ.get("REPO") or ""
+
+          # --- 1. 版本號：v12.8 → 12.8 (維持 JSON 數字型別，與舊格式一致) ---
+          ver_str = tag.lstrip("vV")
+          try:
+              latest_version = float(ver_str)
+          except ValueError:
+              raise SystemExit(f"❌ 無法從 tag「{tag}」解析出版本號，請用 v12.8 這種格式")
+
+          # --- 2. 下載連結：優先用 release 實際上傳的 .exe 附件 ---
+          download_url = ""
+          try:
+              assets = json.loads(os.environ.get("ASSETS_JSON") or "[]")
+              for a in assets:
+                  if a.get("name", "").lower().endswith(".exe"):
+                      download_url = a.get("browser_download_url", "")
+                      break
+          except Exception:
+              pass
+          if not download_url:
+              # 保險：沒上傳 exe 時退回慣用命名 (記得補上傳，否則此連結會 404)
+              download_url = f"https://github.com/{repo}/releases/download/{tag}/Aether.Helper.exe"
+              print("⚠️ 此 release 沒有 .exe 附件，download_url 使用預設檔名，請確認有補上傳！")
+
+          # --- 3. 更新說明：標題 + release 內文逐行帶入 ---
+          #     「- 」開頭統一轉成「• 」，其餘 (段落標題、空行) 原樣保留
+          notes = [f"【乙太助手 {tag} 更新】", ""]
+          for line in body.replace("\r\n", "\n").split("\n"):
+              s = line.rstrip()
+              if s.lstrip().startswith("- "):
+                  indent = s[:len(s) - len(s.lstrip())]
+                  s = indent + "• " + s.lstrip()[2:]
+              elif s.lstrip().startswith("* "):
+                  indent = s[:len(s) - len(s.lstrip())]
+                  s = indent + "• " + s.lstrip()[2:]
+              notes.append(s)
+          # 去掉結尾多餘空行
+          while notes and notes[-1] == "":
+              notes.pop()
+
+          data = {
+              "latest_version": latest_version,
+              "download_url": download_url,
+              "update_notes": notes,
+          }
+          with open("version.json", "w", encoding="utf-8") as f:
+              json.dump(data, f, ensure_ascii=False, indent=2)
+              f.write("\n")
+
+          print("✅ version.json 已產生：")
+          print(json.dumps(data, ensure_ascii=False, indent=2))
+          PYEOF
+
+      - name: Commit 並推回主分支
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add version.json
+          # 內容沒變就跳過 commit，避免空 commit 造成失敗
+          if git diff --cached --quiet; then
+            echo "version.json 內容無變化，跳過 commit"
+          else
+            git commit -m "🤖 自動更新 version.json (${{ github.event.release.tag_name }})"
+            git push origin main
+          fi
