@@ -1,14 +1,12 @@
 {
-  "latest_version": 13.1,
-  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v13.1/Aether.Helper.exe",
+  "latest_version": 13.2,
+  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v13.2/Aether.Helper.exe",
   "update_notes": [
-    "【乙太助手 v13.1 更新】",
-    "",
-    "✨ 新功能",
-    "• 快速登入新增：登入後自動開啟挖礦道具、斷線後自動重連功能",
-    "• 怪物修改新增：藍色瀑布特效、複選特效功能",
+    "【乙太助手 v13.2 更新】",
     "",
     "🔧 問題修正",
-    "• 自動推廣瀏覽器調整適配 Chrome 150 版本 (無法推廣時請更新chrome)"
+    "",
+    "修正自動推廣邏輯：",
+    "現在會自動適配使用者電腦的google chrome版本，解決當chrome更新導致無法推廣的問題。"
   ]
 }
