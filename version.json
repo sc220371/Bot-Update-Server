@@ -1,12 +1,20 @@
 {
-  "latest_version": 13.2,
-  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v13.2/Aether.Helper.exe",
+  "latest_version": 13.3,
+  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v13.3/Aether.Helper.exe",
   "update_notes": [
-    "【乙太助手 v13.2 更新】",
+    "【乙太助手 v13.3 更新】",
     "",
-    "🔧 問題修正",
+    "🔧 更新修正",
+    "1. 熱鍵",
+    "• 修正在特定操作後（技能組執行中取消勾選該組）按熱鍵會導致程式當掉、所有熱鍵失效、必須重開的問題。",
+    "• 熱鍵新增防護：單一功能出錯不會再影響其他熱鍵。",
     "",
-    "修正自動推廣邏輯：",
-    "現在會自動適配使用者電腦的google chrome版本，解決當chrome更新導致無法推廣的問題。"
+    "2. 防外掛破解",
+    "• 修正 RO 在前景時，破解流程有時點不到按鈕就中止的問題，成功率提升。",
+    "",
+    "3. 道館 NPC",
+    "• 道館模式改動說明： 現在取消NPC截圖辨識，改為新增NPC座標點取，不用放大NPC與截圖NPC也能直接點道館人員了。如果想要增強辨識，請點取「齒輪」有更進一步的使用操作設定。（不懂再問我）",
+    "• NPC 對話改為背景處理：點完 NPC 技能會立刻接上，沒有 NPC 時技能也不會被中斷。",
+    "• 修正對話畫面偶爾卡住、重複按 Enter 的問題。"
   ]
 }
