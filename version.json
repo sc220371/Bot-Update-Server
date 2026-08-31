@@ -1,9 +1,9 @@
 {
-  "latest_version": 13.41,
-  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v13.41/Aether.Helper.exe",
+  "latest_version": 13.42,
+  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v13.42/Aether.Helper.exe",
   "update_notes": [
-    "【乙太助手 v13.41 更新】",
+    "【乙太助手 v13.42 更新】",
     "",
-    "修正驗證後主視窗會跳出來擋住遊戲的問題。"
+    "提升輪盤助手之比對辨識。"
   ]
 }
