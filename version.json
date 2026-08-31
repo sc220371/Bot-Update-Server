@@ -1,9 +1,9 @@
 {
-  "latest_version": 13.43,
-  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v13.43/Aether.Helper.exe",
+  "latest_version": 13.45,
+  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v13.45/Aether.Helper.exe",
   "update_notes": [
-    "【乙太助手 v13.43 更新】",
+    "【乙太助手 v13.45 更新】",
     "",
-    "優化輪盤辨識。"
+    "輪盤助手修正。"
   ]
 }
