@@ -1,9 +1,9 @@
 {
-  "latest_version": 13.46,
-  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v13.46/Aether.Helper.exe",
+  "latest_version": 13.47,
+  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v13.47/Aether.Helper.exe",
   "update_notes": [
-    "【乙太助手 v13.46 更新】",
+    "【乙太助手 v13.47 更新】",
     "",
-    "修正外掛驗證後，主視窗會跳出的問題。"
+    "修正驗證流程道具使用倒數秒數，影響判讀的問題。"
   ]
 }
