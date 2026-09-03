@@ -1,9 +1,10 @@
 {
-  "latest_version": 13.47,
-  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v13.47/Aether.Helper.exe",
+  "latest_version": 13.5,
+  "download_url": "https://github.com/sc220371/Bot-Update-Server/releases/download/v13.5/Aether.Helper.exe",
   "update_notes": [
-    "【乙太助手 v13.47 更新】",
+    "【乙太助手 v13.5 更新】",
     "",
-    "修正驗證流程道具使用倒數秒數，影響判讀的問題。"
+    "[新增] 推筒助手",
+    "[修正] 驗證外掛流程時，有時會拉空桿的問題"
   ]
 }
