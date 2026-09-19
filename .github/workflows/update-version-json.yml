@@ -12,7 +12,7 @@ env:
   R2_ENDPOINT: https://3d80f8699fca3f99e08e9708052bcdd6.r2.cloudflarestorage.com
   R2_BUCKET: bot-update
   # ⚠ 把下面這行換成你 R2 的 Public Development URL（結尾不要留斜線）
-  R2_PUBLIC_BASE: https://pub-換成你的.r2.dev
+  R2_PUBLIC_BASE: https://pub-4db41c09021443f8a6a88a36f45c0b1b.r2.dev
 
 jobs:
   update-version-json:
