@@ -4,76 +4,108 @@ on:
   release:
     types: [published]
 
-# 🔑 需要寫入權限才能把 version.json commit 回 repo
 permissions:
   contents: write
+
+env:
+  # ── R2 設定（非機密，放這裡就好；金鑰放在 repo Secrets）──
+  R2_ENDPOINT: https://3d80f8699fca3f99e08e9708052bcdd6.r2.cloudflarestorage.com
+  R2_BUCKET: bot-update
+  # ⚠ 把下面這行換成你 R2 的 Public Development URL（結尾不要留斜線）
+  R2_PUBLIC_BASE: https://pub-換成你的.r2.dev
 
 jobs:
   update-version-json:
     runs-on: ubuntu-latest
     steps:
-      # 💡 release 事件預設會 checkout 到 tag 的 commit，
-      #    必須明確指定主分支，之後才能 push
       - name: 取得主分支
         uses: actions/checkout@v4
         with:
           ref: main
 
+      # ── 1. 把這次 release 的 exe 抓下來 ──
+      - name: 下載 release 的 exe
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          mkdir -p _asset
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern '*.exe' --dir _asset
+          ls -lh _asset
+          # 沒有 exe 就直接失敗，不要產生一個指向不存在檔案的 version.json
+          if [ -z "$(ls -A _asset/*.exe 2>/dev/null)" ]; then
+            echo "❌ 這個 release 沒有 .exe 附件，請先上傳 exe 再重新發布"
+            exit 1
+          fi
+
+      # ── 2. 上傳到 R2（路徑：v<版本>/檔名）──
+      - name: 上傳到 Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          # R2 不吃 AWS CLI 新版預設會送的 checksum 標頭，關掉避免上傳失敗
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          EXE=$(ls _asset/*.exe | head -1)
+          NAME=$(basename "$EXE")
+          aws s3 cp "$EXE" "s3://${R2_BUCKET}/${TAG}/${NAME}" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --content-type application/octet-stream
+          echo "ASSET_NAME=$NAME" >> "$GITHUB_ENV"
+          echo "✅ 已上傳：${R2_PUBLIC_BASE}/${TAG}/${NAME}"
+
+      # ── 3. 產生 version.json（多帶 sha256）──
       - name: 產生 version.json
         env:
           TAG: ${{ github.event.release.tag_name }}
           BODY: ${{ github.event.release.body }}
-          ASSETS_JSON: ${{ toJSON(github.event.release.assets) }}
-          REPO: ${{ github.repository }}
         run: |
           python3 << 'PYEOF'
-          import os, json
+          import os, json, hashlib, glob
 
-          tag = (os.environ.get("TAG") or "").strip()          # 例如 v12.8
+          tag = (os.environ.get("TAG") or "").strip()          # 例如 v14.2
           body = os.environ.get("BODY") or ""
-          repo = os.environ.get("REPO") or ""
+          base = (os.environ.get("R2_PUBLIC_BASE") or "").rstrip("/")
+          name = os.environ.get("ASSET_NAME") or ""
 
-          # --- 1. 版本號：v12.8 → 12.8 (維持 JSON 數字型別，與舊格式一致) ---
+          # --- 1. 版本號：v14.2 → 14.2 (維持 JSON 數字型別，與舊格式一致) ---
           ver_str = tag.lstrip("vV")
           try:
               latest_version = float(ver_str)
           except ValueError:
-              raise SystemExit(f"❌ 無法從 tag「{tag}」解析出版本號，請用 v12.8 這種格式")
+              raise SystemExit(f"❌ 無法從 tag「{tag}」解析出版本號，請用 v14.2 這種格式")
 
-          # --- 2. 下載連結：優先用 release 實際上傳的 .exe 附件 ---
-          download_url = ""
-          try:
-              assets = json.loads(os.environ.get("ASSETS_JSON") or "[]")
-              for a in assets:
-                  if a.get("name", "").lower().endswith(".exe"):
-                      download_url = a.get("browser_download_url", "")
-                      break
-          except Exception:
-              pass
-          if not download_url:
-              # 保險：沒上傳 exe 時退回慣用命名 (記得補上傳，否則此連結會 404)
-              download_url = f"https://github.com/{repo}/releases/download/{tag}/Aether.Helper.exe"
-              print("⚠️ 此 release 沒有 .exe 附件，download_url 使用預設檔名，請確認有補上傳！")
+          # --- 2. 下載連結：指向 R2（GitHub 那份仍在，只是不當主要下載來源）---
+          download_url = f"{base}/{tag}/{name}"
 
-          # --- 3. 更新說明：標題 + release 內文逐行帶入 ---
-          #     「- 」開頭統一轉成「• 」，其餘 (段落標題、空行) 原樣保留
+          # --- 3. 檔案 SHA256：程式下載後會比對，抓壞或被掉包都能擋下來 ---
+          exe = sorted(glob.glob("_asset/*.exe"))[0]
+          h = hashlib.sha256()
+          with open(exe, "rb") as f:
+              for blk in iter(lambda: f.read(1024 * 1024), b""):
+                  h.update(blk)
+          sha256 = h.hexdigest()
+          size = os.path.getsize(exe)
+
+          # --- 4. 更新說明：標題 + release 內文逐行帶入 ---
           notes = [f"【乙太助手 {tag} 更新】", ""]
           for line in body.replace("\r\n", "\n").split("\n"):
               s = line.rstrip()
-              if s.lstrip().startswith("- "):
-                  indent = s[:len(s) - len(s.lstrip())]
-                  s = indent + "• " + s.lstrip()[2:]
-              elif s.lstrip().startswith("* "):
+              if s.lstrip().startswith(("- ", "* ")):
                   indent = s[:len(s) - len(s.lstrip())]
                   s = indent + "• " + s.lstrip()[2:]
               notes.append(s)
-          # 去掉結尾多餘空行
           while notes and notes[-1] == "":
               notes.pop()
 
           data = {
               "latest_version": latest_version,
               "download_url": download_url,
+              "sha256": sha256,
+              "size": size,
               "update_notes": notes,
           }
           with open("version.json", "w", encoding="utf-8") as f:
@@ -89,7 +121,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add version.json
-          # 內容沒變就跳過 commit，避免空 commit 造成失敗
           if git diff --cached --quiet; then
             echo "version.json 內容無變化，跳過 commit"
           else
