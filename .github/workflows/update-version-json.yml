@@ -1,17 +1,26 @@
 name: 發布後自動更新 version.json
-# 觸發時機：每當有 release 被「發布」時自動執行
+# 觸發時機：
+#   1. 有 release 被「發布」時自動執行
+#   2. 手動執行（Actions → 這個 workflow → Run workflow → 填 tag）
+#      ⚠ 這條是救命用的：2026-09-22 發布 v14.2 時 GitHub 沒送出 release 事件，
+#        兩支 workflow 一支都沒跑，結果 version.json 停在舊版、R2 沒檔案、Discord 沒公告。
+#        有了手動執行就不必為了重跑而把 244MB 的 exe 重新上傳一次。
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要處理的版本 tag（例如 v14.2）'
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 env:
-  # ── R2 設定（非機密，放這裡就好；金鑰放在 repo Secrets）──
   R2_ENDPOINT: https://3d80f8699fca3f99e08e9708052bcdd6.r2.cloudflarestorage.com
   R2_BUCKET: bot-update
-  # ⚠ 把下面這行換成你 R2 的 Public Development URL（結尾不要留斜線）
   R2_PUBLIC_BASE: https://pub-4db41c09021443f8a6a88a36f45c0b1b.r2.dev
 
 jobs:
@@ -23,16 +32,39 @@ jobs:
         with:
           ref: main
 
+      # ── 0. 決定要處理哪一版 ──
+      #    兩種觸發方式共用同一段：release 事件用事件帶的 tag，手動執行用填的。
+      #    內文與連結一律用 gh 查回來，不用 github.event.release.*——手動執行時那是空的，
+      #    分兩條路寫只會讓「手動跑出來的結果跟自動跑不一樣」。
+      - name: 決定版本
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="${EVENT_TAG:-$INPUT_TAG}"
+          if [ -z "$TAG" ]; then
+            echo "❌ 拿不到 tag（事件與手動輸入都是空的）"
+            exit 1
+          fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          if ! gh release view "$TAG" --repo "${{ github.repository }}" \
+                 --json body,url > /tmp/rel.json; then
+            echo "❌ 找不到 release「$TAG」，請確認 tag 拼字"
+            exit 1
+          fi
+          python3 -c "import json;d=json.load(open('/tmp/rel.json'));open('/tmp/body.md','w',encoding='utf-8').write(d.get('body') or '')"
+          python3 -c "import json;d=json.load(open('/tmp/rel.json'));print(d.get('url') or '')" > /tmp/url.txt
+          echo "✅ 處理版本：$TAG"
+
       # ── 1. 把這次 release 的 exe 抓下來 ──
       - name: 下載 release 的 exe
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name }}
         run: |
           mkdir -p _asset
           gh release download "$TAG" --repo "${{ github.repository }}" --pattern '*.exe' --dir _asset
           ls -lh _asset
-          # 沒有 exe 就直接失敗，不要產生一個指向不存在檔案的 version.json
           if [ -z "$(ls -A _asset/*.exe 2>/dev/null)" ]; then
             echo "❌ 這個 release 沒有 .exe 附件，請先上傳 exe 再重新發布"
             exit 1
@@ -44,10 +76,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
-          # R2 不吃 AWS CLI 新版預設會送的 checksum 標頭，關掉避免上傳失敗
           AWS_REQUEST_CHECKSUM_CALCULATION: when_required
           AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
-          TAG: ${{ github.event.release.tag_name }}
         run: |
           EXE=$(ls _asset/*.exe | head -1)
           NAME=$(basename "$EXE")
@@ -59,29 +89,24 @@ jobs:
 
       # ── 3. 產生 version.json（多帶 sha256）──
       - name: 產生 version.json
-        env:
-          TAG: ${{ github.event.release.tag_name }}
-          BODY: ${{ github.event.release.body }}
         run: |
           python3 << 'PYEOF'
           import os, json, hashlib, glob
 
-          tag = (os.environ.get("TAG") or "").strip()          # 例如 v14.2
-          body = os.environ.get("BODY") or ""
+          tag = (os.environ.get("TAG") or "").strip()
           base = (os.environ.get("R2_PUBLIC_BASE") or "").rstrip("/")
           name = os.environ.get("ASSET_NAME") or ""
+          with open("/tmp/body.md", encoding="utf-8") as f:
+              body = f.read()
 
-          # --- 1. 版本號：v14.2 → 14.2 (維持 JSON 數字型別，與舊格式一致) ---
           ver_str = tag.lstrip("vV")
           try:
               latest_version = float(ver_str)
           except ValueError:
               raise SystemExit(f"❌ 無法從 tag「{tag}」解析出版本號，請用 v14.2 這種格式")
 
-          # --- 2. 下載連結：指向 R2（GitHub 那份仍在，只是不當主要下載來源）---
           download_url = f"{base}/{tag}/{name}"
 
-          # --- 3. 檔案 SHA256：程式下載後會比對，抓壞或被掉包都能擋下來 ---
           exe = sorted(glob.glob("_asset/*.exe"))[0]
           h = hashlib.sha256()
           with open(exe, "rb") as f:
@@ -90,7 +115,6 @@ jobs:
           sha256 = h.hexdigest()
           size = os.path.getsize(exe)
 
-          # --- 4. 更新說明：標題 + release 內文逐行帶入 ---
           notes = [f"【乙太助手 {tag} 更新】", ""]
           for line in body.replace("\r\n", "\n").split("\n"):
               s = line.rstrip()
@@ -124,6 +148,68 @@ jobs:
           if git diff --cached --quiet; then
             echo "version.json 內容無變化，跳過 commit"
           else
-            git commit -m "🤖 自動更新 version.json (${{ github.event.release.tag_name }})"
+            git commit -m "🤖 自動更新 version.json (${TAG})"
             git push origin main
           fi
+
+      # ── 4. 最後才發 Discord 公告 ──
+      #    ⚠ 放在最後而不是另外一支 workflow，有兩個理由：
+      #      1. 兩支平行跑的話，Discord 幾乎一定比 R2 上傳（244MB）先完成，
+      #         公告出去的當下檔案還沒到位。
+      #      2. 上面任何一步失敗就不會發公告，不會出現「公告了但使用者更新不到」。
+      - name: 發送到 Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+        run: |
+          python3 << 'PYEOF'
+          import os, json, urllib.request, urllib.error
+
+          webhook = os.environ.get("DISCORD_WEBHOOK") or ""
+          THREAD_ID = "1507383354843070485"
+          if THREAD_ID:
+              sep = "&" if "?" in webhook else "?"
+              webhook = f"{webhook}{sep}thread_id={THREAD_ID}"
+
+          tag = (os.environ.get("TAG") or "(未知版本)").strip()
+          with open("/tmp/body.md", encoding="utf-8") as f:
+              body = f.read()
+          with open("/tmp/url.txt", encoding="utf-8") as f:
+              url = f.read().strip()
+
+          notes = body.strip() or "* (這次沒有填寫更新項目)"
+          if url:
+              title = f"[乙太助手 {tag} 更新]({url})"
+          else:
+              title = f"乙太助手 {tag} 更新"
+          message = f"## <a:1485675590529843310:1491388875669504132> {title}\n{notes}"
+          if len(message) > 1950:
+              message = message[:1950] + "\n…(內容過長已截斷)"
+
+          if not webhook:
+              print("❌ DISCORD_WEBHOOK 是空的，請確認 repo Secrets 有 DISCORD_RELEASE_WEBHOOK")
+              raise SystemExit(1)
+          print(f"🔍 webhook 開頭: {webhook[:40]}...")
+
+          payload = {
+              "content": message,
+              "allowed_mentions": {"parse": []},
+          }
+          req = urllib.request.Request(
+              webhook, data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Content-Type": "application/json",
+                  # 🔑 必須帶 User-Agent，否則會被 Discord 前面的 Cloudflare 以 error 1010 擋下
+                  "User-Agent": "StarRO-Release-Bot/1.0 (+https://github.com/sc220371/Bot-Update-Server)",
+              },
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print(f"Discord 回應狀態碼: {resp.status}")
+                  print("✅ 版本公告已送出！")
+          except urllib.error.HTTPError as e:
+              err_body = e.read().decode("utf-8", errors="replace")
+              print(f"❌ Discord 拒絕，狀態碼 {e.code}")
+              print(f"❌ Discord 回應內容: {err_body}")
+              raise
+          PYEOF
