@@ -1,22 +1,31 @@
 name: 發布後自動更新 version.json
 # 觸發時機：
 #   1. 有 release 被「發布」時自動執行
-#   2. 手動執行（Actions → 這個 workflow → Run workflow → 填 tag）
-#      ⚠ 這條是救命用的：2026-09-22 發布 v14.2 時 GitHub 沒送出 release 事件，
-#        兩支 workflow 一支都沒跑，結果 version.json 停在舊版、R2 沒檔案、Discord 沒公告。
-#        有了手動執行就不必為了重跑而把 244MB 的 exe 重新上傳一次。
+#   2. 每 15 分鐘自動檢查一次（保險）：最新的 release 比 version.json 新、卻還沒處理，就自動補做
+#      ⚠ 為什麼要這條：v14.2（2026-09-22）與 v14.3（2026-09-29）發布時，GitHub 都沒送出 release 事件，
+#        兩次都是 exe 還在上傳時就按了 Publish（上傳完成與發布在同一秒）；之前 exe 傳完幾秒後才按的
+#        v13.61／v14.0／v14.1 都正常。有了定時檢查，就算事件漏掉，最慢十幾分鐘也會自己補上。
+#   3. 手動執行（Actions → 這個 workflow → Run workflow）：tag 留空＝處理最新的 release；
+#      填 tag＝不管 version.json 是不是已經是那一版都重做一次（救援用）。
 on:
   release:
     types: [published]
+  schedule:
+    - cron: '*/15 * * * *'
   workflow_dispatch:
     inputs:
       tag:
-        description: '要處理的版本 tag（例如 v14.2）'
-        required: true
+        description: '要處理的版本 tag（例如 v14.3）；留空＝最新的 release'
+        required: false
         type: string
 
 permissions:
   contents: write
+
+# 發布事件與定時檢查可能同時跑到同一版：排隊一個一個來，後面那個會看到 version.json 已經更新而跳過
+concurrency:
+  group: update-version-json
+  cancel-in-progress: false
 
 env:
   R2_ENDPOINT: https://3d80f8699fca3f99e08e9708052bcdd6.r2.cloudflarestorage.com
@@ -28,14 +37,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 取得主分支
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: main
 
-      # ── 0. 決定要處理哪一版 ──
-      #    兩種觸發方式共用同一段：release 事件用事件帶的 tag，手動執行用填的。
-      #    內文與連結一律用 gh 查回來，不用 github.event.release.*——手動執行時那是空的，
-      #    分兩條路寫只會讓「手動跑出來的結果跟自動跑不一樣」。
+      # ── 0. 決定要處理哪一版、要不要處理 ──
+      #    release 事件用事件帶的 tag，手動執行用填的，都沒有（定時檢查）就查最新的 release。
+      #    除了「手動指定 tag」以外，version.json 已經是這一版或更新的就跳過，不重複上傳／公告。
       - name: 決定版本
         env:
           GH_TOKEN: ${{ github.token }}
@@ -43,11 +51,40 @@ jobs:
           INPUT_TAG: ${{ inputs.tag }}
         run: |
           TAG="${EVENT_TAG:-$INPUT_TAG}"
+          FORCE=0
+          if [ -n "$INPUT_TAG" ]; then FORCE=1; fi
           if [ -z "$TAG" ]; then
-            echo "❌ 拿不到 tag（事件與手動輸入都是空的）"
-            exit 1
+            TAG=$(gh release view --repo "${{ github.repository }}" --json tagName -q .tagName 2>/dev/null || true)
+            if [ -z "$TAG" ]; then
+              echo "目前沒有已發布的 release，不用處理"
+              echo "SKIP=1" >> "$GITHUB_ENV"
+              exit 0
+            fi
           fi
           echo "TAG=$TAG" >> "$GITHUB_ENV"
+
+          if [ "$FORCE" != "1" ]; then
+            if python3 - "$TAG" << 'PYEOF'
+          import json, sys
+          tag = sys.argv[1].lstrip("vV")
+          try:
+              cur = float(json.load(open("version.json", encoding="utf-8")).get("latest_version", 0))
+          except Exception:
+              cur = 0.0
+          try:
+              new = float(tag)
+          except ValueError:
+              sys.exit(1)          # 解析不了的 tag 交給下面去報錯
+          print(f"version.json 目前 {cur}，最新 release {new}")
+          sys.exit(0 if new <= cur else 1)
+          PYEOF
+            then
+              echo "✅ version.json 已經是最新（$TAG），不用處理"
+              echo "SKIP=1" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          fi
+
           if ! gh release view "$TAG" --repo "${{ github.repository }}" \
                  --json body,url > /tmp/rel.json; then
             echo "❌ 找不到 release「$TAG」，請確認 tag 拼字"
@@ -59,6 +96,7 @@ jobs:
 
       # ── 1. 把這次 release 的 exe 抓下來 ──
       - name: 下載 release 的 exe
+        if: env.SKIP != '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -72,6 +110,7 @@ jobs:
 
       # ── 2. 上傳到 R2（路徑：v<版本>/檔名）──
       - name: 上傳到 Cloudflare R2
+        if: env.SKIP != '1'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -89,6 +128,7 @@ jobs:
 
       # ── 3. 產生 version.json（多帶 sha256）──
       - name: 產生 version.json
+        if: env.SKIP != '1'
         run: |
           python3 << 'PYEOF'
           import os, json, hashlib, glob
@@ -141,6 +181,7 @@ jobs:
           PYEOF
 
       - name: Commit 並推回主分支
+        if: env.SKIP != '1'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -158,6 +199,7 @@ jobs:
       #         公告出去的當下檔案還沒到位。
       #      2. 上面任何一步失敗就不會發公告，不會出現「公告了但使用者更新不到」。
       - name: 發送到 Discord
+        if: env.SKIP != '1'
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
         run: |
