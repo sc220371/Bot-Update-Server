@@ -1,12 +1,11 @@
 {
-  "latest_version": 14.5,
-  "download_url": "https://pub-4db41c09021443f8a6a88a36f45c0b1b.r2.dev/v14.5/Aether.Helper.exe",
-  "sha256": "65b291de1ce56b39b56d1e4a66451b61fb8e0a25939a638c26ce63f78b0af763",
-  "size": 256547899,
+  "latest_version": 14.6,
+  "download_url": "https://pub-4db41c09021443f8a6a88a36f45c0b1b.r2.dev/v14.6/Aether.Helper.exe",
+  "sha256": "dc7f6dd99b2e00816632da3450a46890ca3330122e3f98a4a6bdc8ba108dd48e",
+  "size": 256546153,
   "update_notes": [
-    "【乙太助手 v14.5 更新】",
+    "【乙太助手 v14.6 更新】",
     "",
-    "[修正] 21點：設定局數會多下一局的錯誤",
-    "[優化] 21點：小視窗新增剩餘局數顯示"
+    "[修正] 21點：起手 21 點（Blackjack）改照普通勝利計算籌碼，預估每小時淨利同步調整"
   ]
 }
