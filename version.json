@@ -1,11 +1,13 @@
 {
-  "latest_version": 14.6,
-  "download_url": "https://pub-4db41c09021443f8a6a88a36f45c0b1b.r2.dev/v14.6/Aether.Helper.exe",
-  "sha256": "dc7f6dd99b2e00816632da3450a46890ca3330122e3f98a4a6bdc8ba108dd48e",
-  "size": 256546153,
+  "latest_version": 14.7,
+  "download_url": "https://pub-4db41c09021443f8a6a88a36f45c0b1b.r2.dev/v14.7/Aether.Helper.exe",
+  "sha256": "fe67344b2bb9095ceea1fe2d15887db922ab4d6dc1c649b6f6abf222501ef552",
+  "size": 389109085,
   "update_notes": [
-    "【乙太助手 v14.6 更新】",
+    "【乙太助手 v14.7 更新】",
     "",
-    "[修正] 21點：起手 21 點（Blackjack）改照普通勝利計算籌碼，預估每小時淨利同步調整"
+    "[新增] 地圖修改：地圖地面可改成格子（預設灰色可站立、黑色不可站立），清除建築與樹木 (部分新地圖尚未拆包，請靜待更新)",
+    "[新增] 地圖修改可搜尋地圖、一鍵全部加入或刪除，並可自訂每張地圖的地板顏色",
+    "[優化] 執行紀錄改為只保留最近 5 天 (縮小容量)"
   ]
 }
